@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cassert>
 #include <string>
 #include "leptjson.h"
@@ -17,6 +18,27 @@ namespace lept {
 		c.json = p;
 	}
 
+	static int lept_parse_true(lept_context& c,lept_value& v) {
+		EXPECT(c,'t');
+		if(c.json[0] != 'r' || c.json[1] != 'u' || c.json[2] != 'e') {
+			return LEPT_PARSE_INVALID_VALUE;
+		}
+		c.json += 3;
+		v.type = LEPT_TRUE;
+
+		return LEPT_PARSE_OK;
+	}
+
+	static int lept_parse_false(lept_context& c,lept_value& v) {
+		EXPECT(c,'f');
+		if(c.json[0] != 'a' || c.json[1] != 'l' || c.json[2] != 's' || c.json[3] != 'e')
+			return LEPT_PARSE_INVALID_VALUE;
+		c.json += 4;
+		v.type = LEPT_FALSE;
+
+		return LEPT_PARSE_OK;
+	}
+
 	static int lept_parse_null(lept_context& c,lept_value& v) {
 		EXPECT(c,'n');
 		if(c.json[0] != 'u' || c.json[1] != 'l' || c.json[2] != 'l') {
@@ -32,6 +54,10 @@ namespace lept {
 		switch(*c.json) {
 			case 'n':
 				return lept_parse_null(c,v);
+			case 't':
+				return lept_parse_true(c,v);
+			case 'f':
+				return lept_parse_false(c,v);
 			case '\0':
 				return LEPT_PARSE_EXCEPT_VALUE;
 			default:
@@ -45,10 +71,17 @@ namespace lept {
 		v.type = LEPT_NULL;
 
 		lept_parse_whitespace(c);
-		return lept_parse_value(c,v);
+	
+		int ret;	
+		if((ret = lept_parse_value(c,v)) == LEPT_PARSE_OK) {
+			lept_parse_whitespace(c);
+			if(*c.json != '\0')
+			    ret = LEPT_PARSE_ROOT_NOT_SINGULAR;
+		}
+		return ret;
 	}
 
-	lept_type lept_get_value(const lept_value& v) {
+	lept_type lept_get_type(const lept_value& v) {
 		return v.type;
 	}
 				
